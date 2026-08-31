@@ -18,14 +18,14 @@ cd C:\Path\To\sevenzip_auto_split_for_email
 **What happens:**
 1. File selection dialog opens → Select your files
 2. Folder selection dialog opens → Choose where to save
-3. Files are compressed and automatically split into 15MB chunks with 7-Zip
+3. Files are compressed and automatically split into 15 MiB volumes with 7-Zip
 4. Done! Archive files appear in your output folder
 
 **Output example:**
 ```
-archive_20240813_143022.zip.part001 (15.0 MB)
-archive_20240813_143022.zip.part002 (15.0 MB)
-archive_20240813_143022.zip.part003 (8.5 MB)
+archive_20240813_143022.zip.001 (15.0 MiB)
+archive_20240813_143022.zip.002 (15.0 MiB)
+archive_20240813_143022.zip.003 (8.5 MiB)
 ```
 
 ---
@@ -38,14 +38,14 @@ archive_20240813_143022.zip.part003 (8.5 MB)
 ```
 
 **Option B: Using 7-Zip GUI**
-1. Right-click `archive_*.zip.part001` file
+1. Right-click the `archive_*.zip.001` file
 2. Select `7-Zip` → `Extract...`
 3. 7-Zip automatically merges all parts and verifies checksums
 
 **Option C: Manual extraction**
 ```powershell
 # Extract from first part (7z will automatically use other parts)
-7z x archive_20240813_143022.zip.part001
+7z x archive_20240813_143022.zip.001
 ```
 
 ---
@@ -56,7 +56,7 @@ archive_20240813_143022.zip.part003 (8.5 MB)
 ```bash
 # Install 7-Zip
 # Ubuntu/Debian
-sudo apt-get install p7zip-full zenity
+sudo apt install 7zip zenity
 
 # macOS
 brew install p7zip zenity
@@ -75,7 +75,7 @@ cd ~/path/to/sevenzip_auto_split_for_email
 **What happens:**
 1. File selection dialog opens (if Zenity installed) → Select your files
 2. Folder selection dialog opens → Choose where to save
-3. Files are compressed and automatically split into 15MB chunks with 7-Zip
+3. Files are compressed and automatically split into 15 MiB volumes with 7-Zip
 4. Done! Archive files appear in your output folder
 
 **If GUI doesn't appear:**
@@ -91,10 +91,13 @@ cd ~/path/to/sevenzip_auto_split_for_email
 ./merge-zip-files.sh
 ```
 
+The script verifies the complete archive first, then offers three actions:
+extract the files, combine the volumes into one ZIP, or test only.
+
 **Option B: Using 7-Zip directly**
 ```bash
 # Extract from first part (7z will automatically use other parts)
-7z x archive_20240813_143022.zip.part001
+7z x archive_20240813_143022.zip.001
 ```
 
 **Option C: Manual merge** (without automatic checksum verification)
@@ -103,7 +106,7 @@ cd ~/path/to/sevenzip_auto_split_for_email
 cd /path/to/split/files
 
 # Merge all parts
-cat archive_*.zip.part* > output.zip
+cat archive.zip.[0-9][0-9][0-9] > output.zip
 
 # Extract
 unzip output.zip
@@ -129,7 +132,7 @@ winget install 7zip
 ### Linux
 ```bash
 # Debian/Ubuntu
-sudo apt-get install p7zip-full zenity
+sudo apt install 7zip zenity
 
 # Fedora/RHEL
 sudo dnf install p7zip-full zenity
@@ -160,8 +163,8 @@ brew install p7zip zenity
    - etc.
 
 3. **Recipient extracts with 7-Zip:**
-   - Download all `.zip.part*` files
-   - Right-click `archive_*.zip.part001`
+   - Download all `.zip.###` files
+   - Right-click `archive_*.zip.001`
    - Select `7-Zip` → `Extract`
    - 7-Zip automatically:
      - Merges all parts
@@ -197,8 +200,8 @@ When prompted for files, enter:
 | "7-Zip not installed" | Download from https://www.7-zip.org/ |
 | "Command not found" | Make sure script is executable: `chmod +x *.sh` |
 | "GUI dialog won't open" | Install zenity: `sudo apt-get install zenity` |
-| "Extract fails on parts" | Ensure all `.zip.part*` files are together |
-| "Part files won't merge" | Use 7-Zip to open .part001 (it handles rest automatically) |
+| "Extract fails on parts" | Ensure all `.zip.###` files are together |
+| "Part files won't merge" | Use 7-Zip to open `.zip.001` (it handles the rest automatically) |
 
 ---
 
@@ -208,7 +211,7 @@ When prompted for files, enter:
 ✅ **Use 7-Zip to extract** - Automatic checksum verification  
 ✅ **Test before sharing** - Verify extracted files work  
 ✅ **Timestamp helps** - Archive names include creation date  
-✅ **Chunk size for email** - 15MB fits most email servers  
+✅ **Volume size for email** - Adjust 15 MiB if your provider has a lower attachment limit
 
 ---
 
