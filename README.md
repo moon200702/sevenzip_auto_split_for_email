@@ -167,8 +167,17 @@ archive_20240813_143022.zip.003 (8.5 MiB)
 ./merge-zip-files.sh
 ```
 
-The Linux merge script first runs `7z t` to verify every volume, then lets you
-extract the files, combine the volumes into one ZIP, or stop after verification.
+The Linux merge script opens a file picker for the first `.zip.001` volume,
+runs `7z t` to verify every volume, then lets you extract the files, combine the
+volumes into one ZIP, or stop after verification. Extraction and combination
+use the same GUI output-folder picker with a terminal fallback.
+
+You can also pass either the first volume or its directory directly:
+
+```bash
+./merge-zip-files.sh /path/to/archive.zip.001
+./merge-zip-files.sh /path/to/volume-directory
+```
 
 ### Manual Merge (Without 7-Zip)
 
