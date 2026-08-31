@@ -92,7 +92,15 @@ cd ~/path/to/sevenzip_auto_split_for_email
 ```
 
 The script verifies the complete archive first, then offers three actions:
-extract the files, combine the volumes into one ZIP, or test only.
+extract the files, combine the volumes into one ZIP, or test only. It uses a
+file picker for the first `.zip.001` volume and a folder picker for the output,
+with terminal prompts as a fallback.
+
+You can also provide the first volume directly:
+
+```bash
+./merge-zip-files.sh /path/to/archive.zip.001
+```
 
 **Option B: Using 7-Zip directly**
 ```bash

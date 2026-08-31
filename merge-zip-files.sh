@@ -15,6 +15,8 @@ GUI_TOOL=""
 NORMALIZED_PATH=""
 INPUT_DIR=""
 FIRST_PART=""
+DESTINATION_DIR=""
+ACTION=""
 ARCHIVE_PATH=""
 ARCHIVE_FILE=""
 BASE_NAME=""
@@ -92,17 +94,20 @@ normalize_user_path() {
     NORMALIZED_PATH="$value"
 }
 
-select_input_directory_gui() {
+select_first_part_gui() {
     local selection=""
 
     case "$GUI_TOOL" in
         zenity)
-            selection=$(zenity --file-selection --directory \
-                --title="Select the directory containing split ZIP files" 2>/dev/null) || return 1
+            selection=$(zenity --file-selection \
+                --title="Select the first split ZIP volume (.zip.001)" \
+                --file-filter="Split ZIP first volume (*.zip.001) | *.zip.001" \
+                --file-filter="All files | *" 2>/dev/null) || return 1
             ;;
         kdialog)
-            selection=$(kdialog --getexistingdirectory "$HOME" \
-                --title "Select the directory containing split ZIP files" 2>/dev/null) || return 1
+            selection=$(kdialog --getopenfilename "$HOME" \
+                "*.zip.001|Split ZIP first volume" \
+                --title "Select the first split ZIP volume" 2>/dev/null) || return 1
             ;;
         *)
             return 1
@@ -110,23 +115,93 @@ select_input_directory_gui() {
     esac
 
     [[ -n "$selection" ]] || return 1
-    INPUT_DIR="$selection"
+    FIRST_PART="$selection"
 }
 
-select_input_directory_terminal() {
+select_first_part_terminal() {
+    local file_path
+
+    log_info "Enter the path to the first split ZIP volume (.zip.001):"
+    IFS= read -r -p "> " file_path || return 1
+    [[ -n "$file_path" ]] || return 1
+
+    normalize_user_path "$file_path"
+    FIRST_PART="$NORMALIZED_PATH"
+}
+
+validate_first_part() {
+    if [[ ! -f "$FIRST_PART" ]]; then
+        log_error "File not found: $FIRST_PART"
+        return 1
+    fi
+
+    if [[ "$FIRST_PART" != *.zip.001 ]]; then
+        log_error "Please select the first volume ending in .zip.001"
+        return 1
+    fi
+
+    INPUT_DIR=$(dirname -- "$FIRST_PART")
+}
+
+select_destination_directory_gui() {
+    local title="$1"
+    local selection=""
+
+    case "$GUI_TOOL" in
+        zenity)
+            selection=$(zenity --file-selection --directory \
+                --filename="$INPUT_DIR/" --title="$title" 2>/dev/null) || return 1
+            ;;
+        kdialog)
+            selection=$(kdialog --getexistingdirectory "$INPUT_DIR" \
+                --title "$title" 2>/dev/null) || return 1
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    [[ -n "$selection" ]] || return 1
+    DESTINATION_DIR="$selection"
+}
+
+select_destination_directory_terminal() {
+    local title="$1"
     local dir_path
 
-    log_info "Enter directory containing .zip.001 files (default: current directory):"
+    log_info "$title (default: $INPUT_DIR):"
     IFS= read -r -p "> " dir_path || return 1
-    [[ -z "$dir_path" ]] && dir_path="."
+    [[ -z "$dir_path" ]] && dir_path="$INPUT_DIR"
 
     normalize_user_path "$dir_path"
-    INPUT_DIR="$NORMALIZED_PATH"
+    DESTINATION_DIR="$NORMALIZED_PATH"
 }
 
-validate_input_directory() {
-    if [[ ! -d "$INPUT_DIR" ]]; then
-        log_error "Directory not found: $INPUT_DIR"
+select_destination_directory() {
+    local title="$1"
+
+    if [[ -n "$GUI_TOOL" ]]; then
+        log_info "Opening output directory dialog with $GUI_TOOL..."
+        if ! select_destination_directory_gui "$title"; then
+            log_warning "GUI selection was cancelled or failed; switching to terminal mode."
+            select_destination_directory_terminal "$title" || return 1
+        fi
+    else
+        select_destination_directory_terminal "$title" || return 1
+    fi
+
+    if [[ -e "$DESTINATION_DIR" && ! -d "$DESTINATION_DIR" ]]; then
+        log_error "Output path is not a directory: $DESTINATION_DIR"
+        return 1
+    fi
+
+    if [[ ! -d "$DESTINATION_DIR" ]]; then
+        log_info "Creating output directory: $DESTINATION_DIR"
+        mkdir -p -- "$DESTINATION_DIR" || return 1
+    fi
+
+    if [[ ! -w "$DESTINATION_DIR" ]]; then
+        log_error "Output directory is not writable: $DESTINATION_DIR"
         return 1
     fi
 }
@@ -242,16 +317,8 @@ extract_archive() {
     local extract_dir
     local response
 
-    log_info "Enter extraction directory (default: $INPUT_DIR/${BASE_NAME}_extracted):"
-    IFS= read -r -p "> " extract_dir || return 1
-    [[ -z "$extract_dir" ]] && extract_dir="$INPUT_DIR/${BASE_NAME}_extracted"
-    normalize_user_path "$extract_dir"
-    extract_dir="$NORMALIZED_PATH"
-
-    if [[ -e "$extract_dir" && ! -d "$extract_dir" ]]; then
-        log_error "Extraction path is not a directory: $extract_dir"
-        return 1
-    fi
+    select_destination_directory "Select output directory for extracted files" || return 1
+    extract_dir="$DESTINATION_DIR/${BASE_NAME}_extracted"
 
     if directory_has_contents "$extract_dir"; then
         log_warning "Extraction directory is not empty: $extract_dir"
@@ -279,12 +346,8 @@ combine_archive() {
     local response
     local temp_file
 
-    log_info "Enter combined ZIP path (default: $ARCHIVE_PATH):"
-    IFS= read -r -p "> " output_path || return 1
-    [[ -z "$output_path" ]] && output_path="$ARCHIVE_PATH"
-    normalize_user_path "$output_path"
-    output_path="$NORMALIZED_PATH"
-    [[ "$output_path" == *.zip ]] || output_path="${output_path}.zip"
+    select_destination_directory "Select output directory for the combined ZIP" || return 1
+    output_path="$DESTINATION_DIR/$ARCHIVE_FILE"
 
     if [[ -e "$output_path" ]]; then
         log_warning "File already exists: $output_path"
@@ -295,12 +358,7 @@ combine_archive() {
         fi
     fi
 
-    if [[ ! -d "$(dirname -- "$output_path")" ]]; then
-        log_error "Output directory does not exist: $(dirname -- "$output_path")"
-        return 1
-    fi
-
-    temp_file=$(mktemp --tmpdir="$(dirname -- "$output_path")" ".combined-zip.XXXXXX")
+    temp_file=$(mktemp --tmpdir="$DESTINATION_DIR" ".combined-zip.XXXXXX")
     if ! cat -- "${VOLUME_PARTS[@]}" > "$temp_file"; then
         rm -f -- "$temp_file"
         log_error "Failed to combine volumes."
@@ -323,7 +381,45 @@ combine_archive() {
     log_success "Combined ZIP saved to: $output_path"
 }
 
-choose_action() {
+choose_action_gui() {
+    local selection=""
+
+    case "$GUI_TOOL" in
+        zenity)
+            selection=$(zenity --list --radiolist \
+                --title="Choose an action" \
+                --text="The archive passed verification." \
+                --column="" --column="Action" \
+                TRUE "Extract files" \
+                FALSE "Combine volumes into one ZIP" \
+                FALSE "Test only" 2>/dev/null) || return 1
+            case "$selection" in
+                "Extract files") ACTION=1 ;;
+                "Combine volumes into one ZIP") ACTION=2 ;;
+                "Test only") ACTION=3 ;;
+                *) return 1 ;;
+            esac
+            ;;
+        kdialog)
+            selection=$(kdialog --menu "The archive passed verification. Choose an action:" \
+                extract "Extract files" \
+                combine "Combine volumes into one ZIP" \
+                test "Test only" \
+                --title "Choose an action" 2>/dev/null) || return 1
+            case "$selection" in
+                extract) ACTION=1 ;;
+                combine) ACTION=2 ;;
+                test) ACTION=3 ;;
+                *) return 1 ;;
+            esac
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+choose_action_terminal() {
     local action
 
     printf '\nChoose an action:\n'
@@ -333,14 +429,29 @@ choose_action() {
     IFS= read -r -p "Selection [1]: " action || return 1
     [[ -z "$action" ]] && action=1
 
-    case "$action" in
+    if [[ ! "$action" =~ ^[123]$ ]]; then
+        log_error "Invalid action: $action"
+        return 1
+    fi
+
+    ACTION="$action"
+}
+
+choose_action() {
+    if [[ -n "$GUI_TOOL" ]]; then
+        log_info "Opening action dialog with $GUI_TOOL..."
+        if ! choose_action_gui; then
+            log_warning "GUI selection was cancelled or failed; switching to terminal mode."
+            choose_action_terminal || return 1
+        fi
+    else
+        choose_action_terminal || return 1
+    fi
+
+    case "$ACTION" in
         1) extract_archive ;;
         2) combine_archive ;;
         3) log_info "Test complete; no files were changed." ;;
-        *)
-            log_error "Invalid action: $action"
-            return 1
-            ;;
     esac
 }
 
@@ -351,20 +462,26 @@ main() {
 
     if (( $# > 0 )); then
         normalize_user_path "$1"
-        INPUT_DIR="$NORMALIZED_PATH"
-    elif [[ -n "$GUI_TOOL" ]]; then
-        log_info "Opening directory selection dialog with $GUI_TOOL..."
-        if ! select_input_directory_gui; then
-            log_warning "GUI selection was cancelled or failed; switching to terminal mode."
-            select_input_directory_terminal || exit 1
+        if [[ -d "$NORMALIZED_PATH" ]]; then
+            INPUT_DIR="$NORMALIZED_PATH"
+            find_first_parts || exit 1
+            choose_archive || exit 1
+        else
+            FIRST_PART="$NORMALIZED_PATH"
+            validate_first_part || exit 1
         fi
+    elif [[ -n "$GUI_TOOL" ]]; then
+        log_info "Opening split ZIP file selection dialog with $GUI_TOOL..."
+        if ! select_first_part_gui; then
+            log_warning "GUI selection was cancelled or failed; switching to terminal mode."
+            select_first_part_terminal || exit 1
+        fi
+        validate_first_part || exit 1
     else
-        select_input_directory_terminal || exit 1
+        select_first_part_terminal || exit 1
+        validate_first_part || exit 1
     fi
 
-    validate_input_directory || exit 1
-    find_first_parts || exit 1
-    choose_archive || exit 1
     collect_volume_parts || exit 1
 
     printf '\n'
