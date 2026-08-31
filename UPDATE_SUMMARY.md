@@ -5,13 +5,13 @@
 ### 1. **Script Behavior Changed**
 - **Before**: Created a ZIP file first, then manually split it into .part001, .part002, etc.
 - **After**: Uses 7-Zip's native `-v` (volume) parameter to create and split in ONE operation
-  - Creates files: `.zip.part001`, `.zip.part002`, etc.
+  - Creates files: `.zip.001`, `.zip.002`, etc.
   - 7-Zip automatically handles all splitting and chunk size management
 
 ### 2. **Checksum Verification**
 - **Before**: No automatic checksum verification; manual merge required
 - **After**: 7-Zip automatically verifies checksums during extraction
-  - When recipient opens `.zip.part001` with 7-Zip, it:
+  - When recipient opens `.zip.001` with 7-Zip, it:
     - Automatically detects all related parts
     - Merges them together
     - Verifies checksums for file integrity
@@ -19,7 +19,7 @@
 
 ### 3. **File Format Changes**
 - **Old**: `archive_20240813_143022.part001` (15.0 MB)
-- **New**: `archive_20240813_143022.zip.part001` (15.0 MB)
+- **New**: `archive_20240813_143022.zip.001` (15.0 MiB)
   - This is 7-Zip's standard format for split archives
   - Clearly indicates these are ZIP volume parts
 
@@ -34,7 +34,7 @@
 - ✅ Added `check_7z_installed()` - validates 7-Zip before running
 - ✅ Replaced `create_zip_file()` and `split_zip_file()` with `create_and_split_archive()`
 - ✅ Uses command: `7z a -v15m archive.zip file1 file2 ...`
-- ✅ Requires: `p7zip-full` package (provides `7z` command)
+- ✅ Requires the `7z` command (`7zip` on current Ubuntu releases)
 - ✅ Merge script now uses 7-Zip for extraction with checksum verification
 
 ### 6. **Documentation Updates**
@@ -49,8 +49,8 @@
 - PowerShell 5.0+ (included in Windows 10+)
 
 ### Linux/macOS
-- **p7zip package** (provides `7z` command)
-- Ubuntu/Debian: `sudo apt-get install p7zip-full`
+- **7zip package** (provides the `7z` command)
+- Current Ubuntu releases: `sudo apt install 7zip`
 - macOS: `brew install p7zip`
 - Optional GUI: `zenity` or `kdialog`
 
@@ -61,7 +61,7 @@
    - 7-Zip detects corruption immediately during extraction
 
 2. **Simpler User Experience**
-   - Recipient just right-clicks `.zip.part001` and selects "Extract with 7-Zip"
+   - Recipient just right-clicks `.zip.001` and selects "Extract with 7-Zip"
    - No manual merging required
    - 7-Zip handles all the heavy lifting
 
@@ -74,7 +74,7 @@
    - Let 7-Zip handle the heavy lifting
 
 5. **Industry Standard**
-   - `.zip.part001` format is recognized by WinRAR, 7-Zip, and other archive tools
+   - `.zip.001` is 7-Zip's native split-volume naming format
    - Works across all platforms
 
 ## Extraction Process
@@ -82,11 +82,11 @@
 ### With 7-Zip (Recommended)
 ```bash
 # Just open the first part file
-7z x archive_20240813_143022.zip.part001
+7z x archive_20240813_143022.zip.001
 
-# Or in GUI: Right-click .zip.part001 → 7-Zip → Extract
+# Or in GUI: Right-click .zip.001 → 7-Zip → Extract
 # 7z automatically:
-# 1. Finds all .zip.part* files
+# 1. Finds all .zip.### files
 # 2. Verifies checksums
 # 3. Merges them
 # 4. Extracts contents
@@ -94,7 +94,7 @@
 
 ### Without 7-Zip (Manual Fallback)
 ```bash
-cat archive_20240813_143022.zip.part* > output.zip
+cat archive_20240813_143022.zip.[0-9][0-9][0-9] > output.zip
 unzip output.zip
 # Note: No automatic integrity checking
 ```
@@ -108,11 +108,11 @@ The scripts have been updated but require 7-Zip to be installed before use.
 2. Run: `.\split-zip-files.ps1`
 
 **For Linux/macOS:**
-1. Install p7zip: `sudo apt-get install p7zip-full` (or `brew install p7zip`)
+1. Install 7-Zip: `sudo apt install 7zip` on current Ubuntu releases
 2. Run: `./split-zip-files.sh`
 
 ## Backward Compatibility
 
-- ✅ Merge scripts detect and support old `.part*` format files
-- ✅ Can still merge manually if needed
-- ✅ But new archives will use 7-Zip's native `.zip.part*` format
+- ⚠️ Old `.part*` files must be concatenated manually before extraction
+- ✅ Native `.zip.001` volumes are verified automatically by the Linux merge script
+- ✅ New archives use 7-Zip's native `.zip.001`, `.zip.002`, ... format

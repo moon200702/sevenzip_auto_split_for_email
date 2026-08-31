@@ -1,13 +1,13 @@
 # 7-Zip Auto Split for Email
 
-Automated script tools that use **7-Zip** to compress files into archives and automatically split them into smaller chunks (15MB each) for email distribution. Includes automatic checksum verification when extracting.
+Automated script tools that use **7-Zip** to compress files into archives and automatically split them into smaller volumes (15 MiB each by default) for email distribution. Includes archive integrity verification before extraction.
 
 ## Features
 
 ✅ **7-Zip powered** - Uses 7-Zip for compression with built-in splitting and checksum verification  
 ✅ **Multi-file selection** - Select multiple files to compress  
 ✅ **GUI & Terminal modes** - GUI support (Zenity, Kdialog) with terminal fallback  
-✅ **Automatic splitting** - Splits archives into 15MB chunks (customizable)  
+✅ **Automatic splitting** - Splits archives into 15 MiB volumes (customizable)
 ✅ **Checksum verification** - Automatic integrity checking during extraction  
 ✅ **Cross-platform** - PowerShell for Windows, Bash for Linux/Mac  
 ✅ **Easy merging** - Simple extraction using 7-Zip  
@@ -19,7 +19,7 @@ Automated script tools that use **7-Zip** to compress files into archives and au
 ### For Bash (Linux/Mac)
 
 **Required:**
-- `7z` (7-Zip command-line tool from p7zip package)
+- `7z` (provided by `7zip` on current Ubuntu releases)
 - `bash` (any recent version)
 - Standard Unix utilities: `find`, `sort`, `du`, `ls`
 
@@ -30,7 +30,10 @@ Automated script tools that use **7-Zip** to compress files into archives and au
 **Installation:**
 
 ```bash
-# Ubuntu/Debian
+# Current Ubuntu releases
+sudo apt install 7zip zenity
+
+# Older Debian/Ubuntu releases may use
 sudo apt-get install p7zip-full zenity
 
 # macOS (using Homebrew)
@@ -86,7 +89,7 @@ cd C:\Path\To\sevenzip_auto_split_for_email
 4. Choose output directory
 5. Script automatically:
    - Creates ZIP archive
-   - Splits into 15MB chunks
+   - Splits into 15 MiB volumes
    - Displays progress and summary
 
 #### Method 2: Run from Command Line
@@ -131,15 +134,15 @@ cd ~/path/to/sevenzip_auto_split_for_email
 ## Output
 
 ### File Structure
-After running, you'll have split files like:
+After running, you'll have 7-Zip volume files like:
 ```
-archive_20240813_143022.zip.part001 (15.0 MB)
-archive_20240813_143022.zip.part002 (15.0 MB)
-archive_20240813_143022.zip.part003 (8.5 MB)
+archive_20240813_143022.zip.001 (15.0 MiB)
+archive_20240813_143022.zip.002 (15.0 MiB)
+archive_20240813_143022.zip.003 (8.5 MiB)
 ```
 
 ### Chunk Size
-- Default chunk size: **15 MB** (ideal for email attachments)
+- Default volume size: **15 MiB** (customize it for your email provider's limit)
 - Easily customizable by editing `CHUNK_SIZE_MB` in the scripts
 
 ---
@@ -150,32 +153,35 @@ archive_20240813_143022.zip.part003 (8.5 MB)
 
 **Windows:**
 ```powershell
-# Right-click on .zip.part001 file and select "7-Zip" → "Extract"
+# Right-click on .zip.001 file and select "7-Zip" → "Extract"
 # Or use command line:
-7z x archive_20240813_143022.zip.part001
+7z x archive_20240813_143022.zip.001
 ```
 
 **Linux/Mac:**
 ```bash
 # Extract from first part (7z automatically uses other parts)
-7z x archive_20240813_143022.zip.part001
+7z x archive_20240813_143022.zip.001
 
 # Or use the merge script:
 ./merge-zip-files.sh
 ```
 
+The Linux merge script first runs `7z t` to verify every volume, then lets you
+extract the files, combine the volumes into one ZIP, or stop after verification.
+
 ### Manual Merge (Without 7-Zip)
 
 **Windows (Command Prompt):**
 ```cmd
-copy /b archive_*.zip.part* output.zip
+copy /b archive.zip.001+archive.zip.002 output.zip
 # Then extract with Windows built-in or another tool
 ```
 
 **Linux/Mac (Terminal):**
 ```bash
 # Merge all parts
-cat archive_*.zip.part* > output.zip
+cat archive.zip.[0-9][0-9][0-9] > output.zip
 
 # Then extract
 unzip output.zip
@@ -218,7 +224,7 @@ CHUNK_SIZE_MB=20  # For 20MB chunks
 # Total: 10 MB
 
 # Output:
-# archive_20240813_143022.part001 (10 MB)
+# archive_20240813_143022.zip.001 (10 MiB)
 ```
 
 ### Example 2: Large Media Files
@@ -229,11 +235,11 @@ CHUNK_SIZE_MB=20  # For 20MB chunks
 # Total: 65 MB
 
 # Output:
-# archive_20240813_143022.part001 (15 MB)
-# archive_20240813_143022.part002 (15 MB)
-# archive_20240813_143022.part003 (15 MB)
-# archive_20240813_143022.part004 (15 MB)
-# archive_20240813_143022.part005 (5 MB)
+# archive_20240813_143022.zip.001 (15 MiB)
+# archive_20240813_143022.zip.002 (15 MiB)
+# archive_20240813_143022.zip.003 (15 MiB)
+# archive_20240813_143022.zip.004 (15 MiB)
+# archive_20240813_143022.zip.005 (5 MiB)
 ```
 
 ---
@@ -306,15 +312,15 @@ sudo apt-get install kdialog
 **Solution:** Ensure all parts are in the same directory with matching names
 ```bash
 # Check file order
-ls -la archive_*.part*
+ls -la archive_*.zip.[0-9][0-9][0-9]
 ```
 
 ---
 
 ## Tips & Best Practices
 
-✅ **Keep output files together** - Store all `.part###` files in same folder  
-✅ **Verify chunk sizes** - Check that largest chunk is ≤ 15MB  
+✅ **Keep output files together** - Store all `.zip.###` files in the same folder
+✅ **Verify volume sizes** - Check that the largest volume matches your email limit
 ✅ **Test before sharing** - Download and test merge before sending to recipient  
 ✅ **Use descriptive names** - Archive names include timestamp by default  
 ✅ **Check available space** - Ensure output directory has enough space  
@@ -347,7 +353,7 @@ ls -la archive_*.part*
 A: Modify the script to start from the `split_zip_file()` function
 
 **Q: How do I send split files via email?**  
-A: Attach each `.part###` file separately (they're ≤15MB each)
+A: Attach each `.zip.###` volume separately (they're ≤15 MiB each)
 
 **Q: Can recipients recombine files themselves?**  
 A: Yes! Include merge instructions from "Recombining Split Files" section
