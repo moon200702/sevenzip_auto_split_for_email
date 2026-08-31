@@ -13,6 +13,12 @@ cd C:\Path\To\sevenzip_auto_split_for_email
 
 # Run the split script
 .\split-zip-files.ps1
+
+# Optional: run entirely from the command line
+.\split-zip-files.ps1 `
+  -Files "C:\Documents\report.pdf","C:\Documents\notes.txt" `
+  -OutputPath "C:\email-parts" `
+  -ChunkSizeMB 15
 ```
 
 **What happens:**
@@ -35,7 +41,15 @@ archive_20240813_143022.zip.003 (8.5 MiB)
 **Option A: Using the script**
 ```powershell
 .\merge-zip-files.ps1
+
+# Or select an archive directly and use terminal prompts
+.\merge-zip-files.ps1 `
+  -InputPath "C:\email-parts\archive_20240813_143022.zip.001" `
+  -Terminal
 ```
+
+The script verifies the archive first, then lets you extract it, combine its
+volumes into a single ZIP, or stop after the integrity test.
 
 **Option B: Using 7-Zip GUI**
 1. Right-click the `archive_*.zip.001` file
@@ -181,7 +195,8 @@ brew install p7zip zenity
 
 ### Change Chunk Size
 
-Edit the script and change this line:
+The Bash script can be configured in the file; PowerShell accepts a parameter
+for each run:
 
 **Bash:**
 ```bash
@@ -190,7 +205,7 @@ CHUNK_SIZE_MB=15  # Change to desired size, e.g., 20
 
 **PowerShell:**
 ```powershell
-$CHUNK_SIZE_MB = 15  # Change to desired size, e.g., 20
+.\split-zip-files.ps1 -ChunkSizeMB 20
 ```
 
 ### Compress Specific Files

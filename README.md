@@ -95,7 +95,15 @@ cd C:\Path\To\sevenzip_auto_split_for_email
 #### Method 2: Run from Command Line
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\split-zip-files.ps1
+
+# Supply files, output folder, and volume size without using the GUI
+.\split-zip-files.ps1 `
+  -Files "C:\Users\me\Documents\report.pdf","C:\Users\me\Documents\notes.txt" `
+  -OutputPath "C:\Users\me\Desktop\email-parts" `
+  -ChunkSizeMB 15
+
+# Or keep the interactive workflow but use terminal prompts only
+.\split-zip-files.ps1 -Terminal
 ```
 
 #### Common Issues:
@@ -143,7 +151,7 @@ archive_20240813_143022.zip.003 (8.5 MiB)
 
 ### Chunk Size
 - Default volume size: **15 MiB** (customize it for your email provider's limit)
-- Easily customizable by editing `CHUNK_SIZE_MB` in the scripts
+- PowerShell: pass `-ChunkSizeMB`; Bash: edit `CHUNK_SIZE_MB`
 
 ---
 
@@ -151,12 +159,22 @@ archive_20240813_143022.zip.003 (8.5 MiB)
 
 ### Using 7-Zip (Recommended - Automatic Checksum Verification)
 
-**Windows:**
+**Windows (interactive script):**
 ```powershell
-# Right-click on .zip.001 file and select "7-Zip" → "Extract"
-# Or use command line:
-7z x archive_20240813_143022.zip.001
+.\merge-zip-files.ps1
+
+# You can also pass the first volume or its containing directory directly
+.\merge-zip-files.ps1 -InputPath "C:\email-parts\archive_20240813_143022.zip.001"
+.\merge-zip-files.ps1 -InputPath "C:\email-parts" -Terminal
 ```
+
+The script selects one `.zip.001` archive set, checks that its numbered
+volumes are continuous, and runs `7z t` before offering three actions: extract
+the files, combine the volumes into one ZIP, or test only. GUI file/folder
+pickers are used by default, with terminal prompts as a fallback.
+
+You can also right-click the `.zip.001` file and choose **7-Zip → Extract**, or
+extract it from PowerShell with `7z x archive_20240813_143022.zip.001`.
 
 **Linux/Mac:**
 ```bash
@@ -204,11 +222,8 @@ unzip output.zip
 
 **PowerShell:**
 ```powershell
-# Edit split-zip-files.ps1
-# Find this line (around line 5):
-$CHUNK_SIZE_MB = 15
-# Change to desired size:
-$CHUNK_SIZE_MB = 20  # For 20MB chunks
+# The default is 15 MiB; override it per run with a parameter
+.\split-zip-files.ps1 -ChunkSizeMB 20
 ```
 
 **Bash:**
@@ -371,7 +386,7 @@ A: Yes! Include merge instructions from "Recombining Split Files" section
 A: Theoretically unlimited (limited by disk space)
 
 **Q: Can I use different chunk sizes?**  
-A: Yes! Edit `CHUNK_SIZE_MB` in the script
+A: Yes. Use `-ChunkSizeMB` in PowerShell, or edit `CHUNK_SIZE_MB` in the Bash script.
 
 ---
 
